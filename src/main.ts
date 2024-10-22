@@ -20,6 +20,14 @@ if (!context) {
 
 //command pattern - make commands one way, then make button and link them
 
+//drawing points array
+interface point {
+    x: number;
+    y: number;
+}
+
+const pointArray: point[] = [] 
+
 //command functions
 function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, weight: number, color: "white" | "black" | "red") {
     context.beginPath();
@@ -29,7 +37,7 @@ function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2:
     context.lineTo(x2, y2);
     context.stroke();
     context.closePath();
-  }
+}
 
 function clearCanvas(context: CanvasRenderingContext2D): void {
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -42,32 +50,42 @@ function clearCanvas(context: CanvasRenderingContext2D): void {
 //CODE CITATION: much of this code was taken from the resource that was linked in the slides: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
 
 let isDrawing = false;
-let x = 0;
-let y = 0;
 
-canvas.addEventListener('mousedown', (e) => {
-    x = e.offsetX;
-    y = e.offsetY;
+canvas.addEventListener('drawing-changed', () => {
+    if (pointArray.length < 2) return; // Ensure there are enough points to draw a line
+    const secondLastPoint = pointArray[pointArray.length - 2];
+    const lastPoint = pointArray[pointArray.length - 1];
+    drawLine(context, secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y, 2, "white");
+})
+
+canvas.addEventListener('mousedown', () => {
     isDrawing = true;
     console.log("mousedown")
 })
 
 canvas.addEventListener('mousemove', (e) => {
     if(isDrawing) {
-        drawLine(context, x, y, e.offsetX, e.offsetY, 1, "white");
-        x = e.offsetX;
-        y = e.offsetY;
+        const newPoint: point = {x: e.offsetX, y: e.offsetY}
+        pointArray.push(newPoint)
+        
+        const event = new CustomEvent("drawing-changed");
+        canvas.dispatchEvent(event);
+        
         console.log("mousemove")
     }
 })
 
 canvas.addEventListener('mouseup', (e) => {
     if(isDrawing) {
-        drawLine(context, x, y, e.offsetX, e.offsetY, 1, "white");
-        x = 0;
-        y = 0;
+        const newPoint: point = {x: e.offsetX, y: e.offsetY}
+        pointArray.push(newPoint)
+
+        const event = new CustomEvent("drawing-changed");
+        canvas.dispatchEvent(event);
+
         isDrawing = false;
     }
+    pointArray.length = 0
     console.log("mouseup")
 })
 
