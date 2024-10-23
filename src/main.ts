@@ -20,7 +20,7 @@ if (!context) {
 
 //command pattern - make commands one way, then make button and link them
 
-//drawing points array
+//definitions
 interface point {
     x: number;
     y: number;
@@ -29,6 +29,22 @@ interface point {
 interface line {
     lineVertices: point[];
     lineWeight: number;
+}
+
+class commandButton {
+    text: string;
+    command: () => void;
+    button: HTMLButtonElement;
+    constructor(text: string, command: () => void ) {
+        this.text = text;
+        this.command = command;
+        this.button = document.createElement("button")
+        this.button.innerHTML = this.text
+        app.append(this.button)
+        this.button.addEventListener("click", () => {
+            this.command();
+        });
+    }
 }
 
 const pointArray: point[] = []
@@ -46,13 +62,17 @@ function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2:
     context.closePath();
 }
 
-function clearCanvas(context: CanvasRenderingContext2D): void {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+function clearCanvas(): void {
+    if(context){
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    undoStack.length = 0
+    redoStack.length = 0
 }
 
 function eraseLine(): void {
     if(context){
-        clearCanvas(context)
+        context.clearRect(0, 0, canvas.width, canvas.height);
     }
     for(let i = 0; i < undoStack.length; i++){
         if(context){
@@ -72,6 +92,28 @@ function redrawLine(line: line): void {
         }
         oldX = x
         oldY = y
+    }
+}
+
+function undo(): void {
+    if(undoStack.length < 1) { //only if there is a line to undo
+        return;
+    }
+    const newLine = undoStack.pop()
+    if(newLine) {
+        redoStack.push(newLine);
+        eraseLine();
+    }
+}
+
+function redo(): void {
+    if(redoStack.length < 1) { //only if there is a line to undo
+        return;
+    }
+    const newLine = redoStack.pop()
+    if(newLine) {
+        undoStack.push(newLine)
+        redrawLine(newLine);
     }
 }
 
@@ -124,48 +166,6 @@ canvas.addEventListener('mouseup', (e) => {
 })
 
 //clear button
-const clearButton = document.createElement("button")
-clearButton.innerHTML = "clear"
-app.append(clearButton)
-
-//button listener
-clearButton.addEventListener("click", () => {
-    //update numbers
-    clearCanvas(context);
-  });
-
-//undo button
-const undoButton = document.createElement("button")
-undoButton.innerHTML = "undo"
-app.append(undoButton)
-
-//button listener
-undoButton.addEventListener("click", () => {
-    if(undoStack.length < 1) { //only if there is a line to undo
-        return;
-    }
-    const newLine = undoStack.pop()
-    if(newLine) {
-        redoStack.push(newLine);
-        eraseLine();
-    }
-  });
-
-
-//redo button
-const redoButton = document.createElement("button")
-redoButton.innerHTML = "redo"
-app.append(redoButton)
-
-//button listener
-redoButton.addEventListener("click", () => {
-    //update numbers
-    if(redoStack.length < 1) { //only if there is a line to undo
-        return;
-    }
-    const newLine = redoStack.pop()
-    if(newLine) {
-        undoStack.push(newLine)
-        redrawLine(newLine);
-    }
-  });
+const clearButton = new commandButton("clear", clearCanvas)
+const undoButton = new commandButton("undo", undo)
+const redoButton = new commandButton("redo", redo)
