@@ -26,9 +26,14 @@ interface point {
     y: number;
 }
 
-interface line {
-    lineVertices: point[];
-    lineWeight: number;
+class ctx {
+    imageData: ImageData;
+    constructor(imageData: ImageData) {
+        this.imageData = imageData;
+    }
+    display(context: CanvasRenderingContext2D) {
+        context.putImageData(this.imageData, 0, 0)
+    }
 }
 
 class commandButton {
@@ -48,8 +53,11 @@ class commandButton {
 }
 
 const pointArray: point[] = []
-const undoStack: line[] = []
-const redoStack: line[] = []
+const undoStack: ctx[] = []
+let contextPointer = 0;
+
+const blankCanvas: ctx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
+undoStack.push(blankCanvas);
 
 //command functions
 function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, weight: number, color: "white" | "black" | "red" | "#1a1a1a") {
@@ -67,53 +75,27 @@ function clearCanvas(): void {
         context.clearRect(0, 0, canvas.width, canvas.height);
     }
     undoStack.length = 0
-    redoStack.length = 0
-}
-
-function eraseLine(): void {
-    if(context){
-        context.clearRect(0, 0, canvas.width, canvas.height);
-    }
-    for(let i = 0; i < undoStack.length; i++){
-        if(context){
-            redrawLine(undoStack[i])
-        }
-    }
-}
-
-function redrawLine(line: line): void {
-    let oldX = line.lineVertices[0].x
-    let oldY = line.lineVertices[0].y
-    for(let i = 1; i < line.lineVertices.length; i++){
-        const x = line.lineVertices[i].x
-        const y = line.lineVertices[i].y
-        if(context){
-            drawLine(context, x, y, oldX, oldY, line.lineWeight, "white")
-        }
-        oldX = x
-        oldY = y
-    }
+    contextPointer = 0
+    undoStack.push(blankCanvas);
 }
 
 function undo(): void {
-    if(undoStack.length < 1) { //only if there is a line to undo
+    if(contextPointer == 0) { //only if there is a line to undo
         return;
     }
-    const newLine = undoStack.pop()
-    if(newLine) {
-        redoStack.push(newLine);
-        eraseLine();
+    contextPointer -= 1;
+    if(context) {
+        undoStack[contextPointer].display(context)
     }
 }
 
 function redo(): void {
-    if(redoStack.length < 1) { //only if there is a line to undo
+    if(contextPointer == undoStack.length - 1) { //only if there is a line to undo
         return;
     }
-    const newLine = redoStack.pop()
-    if(newLine) {
-        undoStack.push(newLine)
-        redrawLine(newLine);
+    contextPointer += 1;
+    if(context) {
+        undoStack[contextPointer].display(context)
     }
 }
 
@@ -133,7 +115,6 @@ canvas.addEventListener('drawing-changed', () => {
 
 canvas.addEventListener('mousedown', () => {
     isDrawing = true;
-    console.log("mousedown")
 })
 
 canvas.addEventListener('mousemove', (e) => {
@@ -143,8 +124,6 @@ canvas.addEventListener('mousemove', (e) => {
         
         const event = new CustomEvent("drawing-changed");
         canvas.dispatchEvent(event);
-        
-        console.log("mousemove")
     }
 })
 
@@ -158,11 +137,10 @@ canvas.addEventListener('mouseup', (e) => {
 
         isDrawing = false;
     }
-    const pointCopy: point[] = pointArray.slice()
-    const newLine: line = {lineVertices: pointCopy, lineWeight: 2};
-    undoStack.push(newLine);
+    const newCtx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
+    undoStack.push(newCtx);
+    contextPointer += 1;
     pointArray.length = 0
-    console.log("mouseup")
 })
 
 //clear button
