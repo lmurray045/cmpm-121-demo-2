@@ -55,6 +55,7 @@ class commandButton {
 const pointArray: point[] = []
 const undoStack: ctx[] = []
 let contextPointer = 0;
+let lineThickness = 2;
 
 const blankCanvas: ctx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
 undoStack.push(blankCanvas);
@@ -99,6 +100,14 @@ function redo(): void {
     }
 }
 
+function thickLine(): void {
+    lineThickness = 4;
+}
+
+function thinLine(): void {
+    lineThickness = 2;
+}
+
 //actions to be linked
 
 //draw on mouse movement
@@ -110,7 +119,7 @@ canvas.addEventListener('drawing-changed', () => {
     if (pointArray.length < 2) return; // Ensure there are enough points to draw a line
     const secondLastPoint = pointArray[pointArray.length - 2];
     const lastPoint = pointArray[pointArray.length - 1];
-    drawLine(context, secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y, 2, "white");
+    drawLine(context, secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y, lineThickness, "white");
 })
 
 canvas.addEventListener('mousedown', () => {
@@ -137,6 +146,7 @@ canvas.addEventListener('mouseup', (e) => {
 
         isDrawing = false;
     }
+    undoStack.length = contextPointer + 1;
     const newCtx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
     undoStack.push(newCtx);
     contextPointer += 1;
@@ -147,3 +157,5 @@ canvas.addEventListener('mouseup', (e) => {
 const clearButton = new commandButton("clear", clearCanvas)
 const undoButton = new commandButton("undo", undo)
 const redoButton = new commandButton("redo", redo)
+const thickButton = new commandButton("Marker", thickLine)
+const thinButton = new commandButton("Pen", thinLine)
