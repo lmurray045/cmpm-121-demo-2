@@ -98,6 +98,16 @@ class commandButton {
     }
 }
 
+// Define the structure of your event's detail
+interface ToolMovedEventDetail {
+    x: number;
+    y: number;
+    isNull: boolean;
+}
+
+// Extend the base event type to include your custom detail
+interface ToolMovedEvent extends CustomEvent<ToolMovedEventDetail> {}
+
 const pointArray: point[] = []
 const undoStack: ctx[] = []
 let contextPointer = 0;
@@ -157,6 +167,17 @@ function thinLine(): void {
     lineThickness = 2;
 }
 
+function toolMovedEvent(x: number, y: number, isNull: boolean) {
+    const toolEvent: ToolMovedEvent = new CustomEvent("tool-moved", {
+        detail: {
+            x: x,
+            y: y,
+            isNull: isNull
+        }
+    });
+    canvas.dispatchEvent(toolEvent);
+}
+
 
 //actions to be linked
 
@@ -177,14 +198,12 @@ canvas.addEventListener('mousedown', () => {
 })
 
 canvas.addEventListener('mouseleave', () => {
-    preview.isNull = true;
-    preview.updatePosition(0, 0)
+    toolMovedEvent(0, 0, true);
 })
 
 canvas.addEventListener('mousemove', (e) => {
     if(isDrawing) {
-        preview.isNull = true;
-        preview.updatePosition(e.offsetX, e.offsetY)
+        toolMovedEvent(e.offsetX, e.offsetY, true);
 
         const newPoint: point = {x: e.offsetX, y: e.offsetY}
         pointArray.push(newPoint)
@@ -193,16 +212,13 @@ canvas.addEventListener('mousemove', (e) => {
         canvas.dispatchEvent(event);
     }
     else {
-        preview.update(mouseString, mouseColor, lineThickness);
-        preview.updatePosition(e.offsetX, e.offsetY)
-        preview.display()
+        toolMovedEvent(e.offsetX, e.offsetY, false);
     }
 })
 
 canvas.addEventListener('mouseup', (e) => {
     if(isDrawing) {
-        preview.isNull = true;
-        preview.updatePosition(e.offsetX, e.offsetY)
+        toolMovedEvent(e.offsetX, e.offsetY, true);
 
         const newPoint: point = {x: e.offsetX, y: e.offsetY}
         pointArray.push(newPoint)
@@ -217,6 +233,15 @@ canvas.addEventListener('mouseup', (e) => {
     undoStack.push(newCtx);
     contextPointer += 1;
     pointArray.length = 0
+})
+
+canvas.addEventListener("tool-moved", (e: ToolMovedEvent) => {
+    preview.isNull = e.detail.isNull
+    preview.update(mouseString, mouseColor, lineThickness);
+    preview.updatePosition(e.detail.x, e.detail.y);
+    if(!e.detail.isNull){
+        preview.display()
+    }
 })
 
 //clear button
