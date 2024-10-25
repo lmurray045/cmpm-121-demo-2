@@ -12,6 +12,10 @@ canvas.width = 256;
 canvas.height = 256;
 app.append(canvas)
 
+const buttonContainer = document.createElement("div");
+buttonContainer.id = "button-container";
+app.append(buttonContainer);
+
 const context = canvas.getContext('2d');
 
 if (!context) {
@@ -36,16 +40,58 @@ class ctx {
     }
 }
 
+class mousePointer {
+    private x: number = 0;
+    private y: number = 0;
+    cursor: HTMLDivElement;
+    color: string;
+    isNull: boolean;
+    fontSize: number = 8;
+    constructor(text: string, color: "white" | "black" | "red", lineSize: number) {
+        this.color = color;
+        this.isNull = true;
+        this.cursor = document.createElement("div");
+        this.cursor.id = "custom-cursor";
+        this.cursor.style.position = "absolute";
+        this.cursor.style.display = 'none'
+        this.cursor.style.fontSize = `${this.fontSize * lineSize}px`;
+        this.cursor.style.pointerEvents = "none"; // Allow clicks to pass through
+        this.cursor.textContent = text;
+        this.cursor.style.color = color;
+        app.appendChild(this.cursor);
+    }
+    updatePosition(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+        const canvasBounds = canvas.getBoundingClientRect();
+        if(this.isNull) {
+            this.cursor.style.display = 'none'
+        }
+        this.cursor.style.left = `${x + canvasBounds.left}px`;
+        this.cursor.style.top = `${y + canvasBounds.top}px`;
+    }
+    display() {
+        this.isNull = false;
+        this.cursor.style.display = 'block'
+    }
+    update(text: string, color: "white" | "black" | "red", lineSize: number){
+        this.color = color;
+        this.cursor.textContent = text;
+        this.cursor.style.color = color;
+        this.cursor.style.fontSize = `${lineSize * this.fontSize}px`
+    }
+}
+
 class commandButton {
     text: string;
     command: () => void;
     button: HTMLButtonElement;
-    constructor(text: string, command: () => void ) {
+    constructor(text: string, command: () => void, container: HTMLDivElement) {
         this.text = text;
         this.command = command;
         this.button = document.createElement("button")
         this.button.innerHTML = this.text
-        app.append(this.button)
+        container.append(this.button)
         this.button.addEventListener("click", () => {
             this.command();
         });
@@ -56,6 +102,9 @@ const pointArray: point[] = []
 const undoStack: ctx[] = []
 let contextPointer = 0;
 let lineThickness = 2;
+let mouseString: string = "•";
+let mouseColor: "white" | "red" | "black" = "white"
+let preview: mousePointer = new mousePointer(mouseString, mouseColor, lineThickness);
 
 const blankCanvas: ctx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
 undoStack.push(blankCanvas);
@@ -108,6 +157,7 @@ function thinLine(): void {
     lineThickness = 2;
 }
 
+
 //actions to be linked
 
 //draw on mouse movement
@@ -126,18 +176,34 @@ canvas.addEventListener('mousedown', () => {
     isDrawing = true;
 })
 
+canvas.addEventListener('mouseleave', () => {
+    preview.isNull = true;
+    preview.updatePosition(0, 0)
+})
+
 canvas.addEventListener('mousemove', (e) => {
     if(isDrawing) {
+        preview.isNull = true;
+        preview.updatePosition(e.offsetX, e.offsetY)
+
         const newPoint: point = {x: e.offsetX, y: e.offsetY}
         pointArray.push(newPoint)
         
         const event = new CustomEvent("drawing-changed");
         canvas.dispatchEvent(event);
     }
+    else {
+        preview.update(mouseString, mouseColor, lineThickness);
+        preview.updatePosition(e.offsetX, e.offsetY)
+        preview.display()
+    }
 })
 
 canvas.addEventListener('mouseup', (e) => {
     if(isDrawing) {
+        preview.isNull = true;
+        preview.updatePosition(e.offsetX, e.offsetY)
+
         const newPoint: point = {x: e.offsetX, y: e.offsetY}
         pointArray.push(newPoint)
 
@@ -154,8 +220,8 @@ canvas.addEventListener('mouseup', (e) => {
 })
 
 //clear button
-const clearButton = new commandButton("clear", clearCanvas)
-const undoButton = new commandButton("undo", undo)
-const redoButton = new commandButton("redo", redo)
-const thickButton = new commandButton("Marker", thickLine)
-const thinButton = new commandButton("Pen", thinLine)
+const clearButton = new commandButton("clear", clearCanvas, buttonContainer)
+const undoButton = new commandButton("undo", undo, buttonContainer)
+const redoButton = new commandButton("redo", redo, buttonContainer)
+const thickButton = new commandButton("Marker", thickLine, buttonContainer)
+const thinButton = new commandButton("Pen", thinLine, buttonContainer)
