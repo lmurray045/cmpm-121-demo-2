@@ -16,6 +16,10 @@ const buttonContainer = document.createElement("div");
 buttonContainer.id = "button-container";
 app.append(buttonContainer);
 
+const markerContainer = document.createElement("div");
+buttonContainer.id = "button-container";
+app.append(markerContainer);
+
 const stickerContainer = document.createElement("div");
 buttonContainer.id = "button-container";
 app.append(stickerContainer);
@@ -50,7 +54,7 @@ class mousePointer {
     cursor: HTMLDivElement;
     color: string;
     isNull: boolean;
-    fontSize: number = 8;
+    fontSize: number = defaultSize;
     constructor(text: string, color: "white" | "black" | "red", lineSize: number) {
         this.color = color;
         this.isNull = true;
@@ -110,12 +114,14 @@ interface ToolMovedEventDetail {
 }
 
 // Extend the base event type to include your custom detail
-interface ToolMovedEvent extends CustomEvent<ToolMovedEventDetail> {}
+type ToolMovedEvent = CustomEvent<ToolMovedEventDetail>
+
 
 const pointArray: point[] = []
 const undoStack: ctx[] = []
 let contextPointer = 0;
 let lineThickness = 2;
+const defaultSize = 8;
 let mouseString: string = "•";
 let mouseColor: "white" | "red" | "black" = "white"
 const preview: mousePointer = new mousePointer(mouseString, mouseColor, lineThickness);
@@ -175,43 +181,56 @@ function thinLine(): void {
     isSticker = false;
 }
 
+function makeSticker(s: string): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const stickerButton = new commandButton(s, () => {
+        mouseString = s
+        lineThickness = 4;
+        if(context){
+            context.font = `${lineThickness * defaultSize - 1}px Arial`;
+            context.fillStyle = "white";
+        }
+        isSticker = true;
+    }, stickerContainer)
+}
+
+function customSticker(): void {
+    const customSticker = prompt("Custom Sticker");
+    if(customSticker){
+        stickerList.push(customSticker);
+        makeSticker(customSticker);
+    } 
+}
+
+function measureText(s: string): number[] {
+    const measure = document.createElement('span');
+        if(context){
+            measure.style.font = context.font;
+        }
+        measure.style.fontSize = `${(lineThickness * defaultSize)}px`;
+        measure.style.position = 'absolute';
+        measure.style.visibility = 'hidden';
+        measure.textContent = s;
+        document.body.appendChild(measure);
+
+        const textWidth: number = measure.offsetWidth;
+        const textHeight: number = measure.offsetHeight;
+        document.body.removeChild(measure);
+        const returnArray: number[] = [textWidth, textHeight]
+        return returnArray;
+}
+
 function toolMovedEvent(x: number, y: number, isNull: boolean) {
-    const toolEvent: ToolMovedEvent = new CustomEvent("tool-moved", {
+    const toolEvent: ToolMovedEvent = new CustomEvent<ToolMovedEventDetail>("tool-moved", {
         detail: {
             x: x,
             y: y,
             isNull: isNull
         }
-    });
+    }) as ToolMovedEvent;
     canvas.dispatchEvent(toolEvent);
 }
 
-function placeDino() {
-    mouseString = "🦕";
-    lineThickness = 4;
-    if(context){
-        context.font = `${lineThickness * 8}px Arial`;
-    }
-    isSticker = true;
-}
-
-function placeTrex() {
-    mouseString = "🦖"
-    lineThickness = 4;
-    if(context){
-        context.font = `${lineThickness * 8}px Arial`;
-    }
-    isSticker = true;
-}
-
-function placeVolcano() {
-    mouseString = "🌋"
-    lineThickness = 4;
-    if(context){
-        context.font = `${lineThickness * 8}px Arial`;
-    }
-    isSticker = true;
-}
 
 //actions to be linked
 
@@ -266,7 +285,12 @@ canvas.addEventListener('mouseup', (e) => {
         isDrawing = false;
     }
     if(isSticker){
-        context.fillText(mouseString, e.offsetX - 18, e.offsetY + 10)
+
+        const measurements = measureText(mouseString)
+        const textWidth = measurements[0];
+        const textHeight = measurements[1];
+    
+        context.fillText(mouseString, (e.offsetX - textWidth / 2) - 1, (e.offsetY + textHeight / 2) - 9)
     }
     undoStack.length = contextPointer + 1;
     const newCtx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
@@ -285,11 +309,21 @@ canvas.addEventListener("tool-moved", (e: ToolMovedEvent) => {
 })
 
 //clear button
-const clearButton = new commandButton("clear", clearCanvas, buttonContainer)
-const undoButton = new commandButton("undo", undo, buttonContainer)
-const redoButton = new commandButton("redo", redo, buttonContainer)
-const thickButton = new commandButton("Marker", thickLine, buttonContainer)
-const thinButton = new commandButton("Pen", thinLine, buttonContainer)
-const dinoButton = new commandButton("🦕", placeDino, stickerContainer)
-const trexButton = new commandButton("🦖", placeTrex, stickerContainer)
-const volcanoButton = new commandButton("🌋", placeVolcano, stickerContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const clearButton = new commandButton("Clear", clearCanvas, buttonContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const undoButton = new commandButton("Undo", undo, buttonContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const redoButton = new commandButton("Redo", redo, buttonContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const thickButton = new commandButton("Marker", thickLine, markerContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const thinButton = new commandButton("Pen", thinLine, markerContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const customButton = new commandButton("Custom Sticker", customSticker, markerContainer)
+
+const stickerList: string[] =  ["🦕", "🦖", "🌋", "🔥", "💥"]
+
+for (const s of stickerList) {
+    makeSticker(s);
+}
