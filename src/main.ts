@@ -16,6 +16,10 @@ const buttonContainer = document.createElement("div");
 buttonContainer.id = "button-container";
 app.append(buttonContainer);
 
+const stickerContainer = document.createElement("div");
+buttonContainer.id = "button-container";
+app.append(stickerContainer);
+
 const context = canvas.getContext('2d');
 
 if (!context) {
@@ -114,7 +118,7 @@ let contextPointer = 0;
 let lineThickness = 2;
 let mouseString: string = "•";
 let mouseColor: "white" | "red" | "black" = "white"
-let preview: mousePointer = new mousePointer(mouseString, mouseColor, lineThickness);
+const preview: mousePointer = new mousePointer(mouseString, mouseColor, lineThickness);
 
 const blankCanvas: ctx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
 undoStack.push(blankCanvas);
@@ -160,11 +164,15 @@ function redo(): void {
 }
 
 function thickLine(): void {
+    mouseString = "•";
     lineThickness = 4;
+    isSticker = false;
 }
 
 function thinLine(): void {
+    mouseString = "•";
     lineThickness = 2;
+    isSticker = false;
 }
 
 function toolMovedEvent(x: number, y: number, isNull: boolean) {
@@ -178,6 +186,32 @@ function toolMovedEvent(x: number, y: number, isNull: boolean) {
     canvas.dispatchEvent(toolEvent);
 }
 
+function placeDino() {
+    mouseString = "🦕";
+    lineThickness = 4;
+    if(context){
+        context.font = `${lineThickness * 8}px Arial`;
+    }
+    isSticker = true;
+}
+
+function placeTrex() {
+    mouseString = "🦖"
+    lineThickness = 4;
+    if(context){
+        context.font = `${lineThickness * 8}px Arial`;
+    }
+    isSticker = true;
+}
+
+function placeVolcano() {
+    mouseString = "🌋"
+    lineThickness = 4;
+    if(context){
+        context.font = `${lineThickness * 8}px Arial`;
+    }
+    isSticker = true;
+}
 
 //actions to be linked
 
@@ -185,6 +219,7 @@ function toolMovedEvent(x: number, y: number, isNull: boolean) {
 //CODE CITATION: much of this code was taken from the resource that was linked in the slides: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
 
 let isDrawing = false;
+let isSticker = false;
 
 canvas.addEventListener('drawing-changed', () => {
     if (pointArray.length < 2) return; // Ensure there are enough points to draw a line
@@ -194,7 +229,9 @@ canvas.addEventListener('drawing-changed', () => {
 })
 
 canvas.addEventListener('mousedown', () => {
-    isDrawing = true;
+    if(!isSticker){
+        isDrawing = true;
+    }
 })
 
 canvas.addEventListener('mouseleave', () => {
@@ -202,7 +239,7 @@ canvas.addEventListener('mouseleave', () => {
 })
 
 canvas.addEventListener('mousemove', (e) => {
-    if(isDrawing) {
+    if(isDrawing && !isSticker) {
         toolMovedEvent(e.offsetX, e.offsetY, true);
 
         const newPoint: point = {x: e.offsetX, y: e.offsetY}
@@ -228,6 +265,9 @@ canvas.addEventListener('mouseup', (e) => {
 
         isDrawing = false;
     }
+    if(isSticker){
+        context.fillText(mouseString, e.offsetX - 18, e.offsetY + 10)
+    }
     undoStack.length = contextPointer + 1;
     const newCtx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
     undoStack.push(newCtx);
@@ -250,3 +290,6 @@ const undoButton = new commandButton("undo", undo, buttonContainer)
 const redoButton = new commandButton("redo", redo, buttonContainer)
 const thickButton = new commandButton("Marker", thickLine, buttonContainer)
 const thinButton = new commandButton("Pen", thinLine, buttonContainer)
+const dinoButton = new commandButton("🦕", placeDino, stickerContainer)
+const trexButton = new commandButton("🦖", placeTrex, stickerContainer)
+const volcanoButton = new commandButton("🌋", placeVolcano, stickerContainer)
