@@ -7,6 +7,10 @@ const header = document.createElement("h1");
 header.innerHTML = APP_NAME;
 app.append(header);
 
+const exportContainer = document.createElement("div");
+exportContainer.id = "button-container";
+app.append(exportContainer);
+
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
@@ -231,6 +235,30 @@ function toolMovedEvent(x: number, y: number, isNull: boolean) {
     canvas.dispatchEvent(toolEvent);
 }
 
+function exportDrawing(): void {
+    const newCanvas = document.createElement("canvas");
+    newCanvas.width = 1024;
+    newCanvas.height = 1024;
+    const newCtx = newCanvas.getContext('2d');
+    if(context && newCtx) {
+        // Set up the scale first
+        const scale = 4
+        newCtx.scale(scale, scale);
+ 
+        // Copy the original canvas to the new one, scaling it by the specified factor
+        newCtx.drawImage(canvas, 0, 0);
+
+        newCtx.scale(1/scale, 1/scale);
+
+        const anchor = document.createElement("a");
+        anchor.href = newCanvas.toDataURL("image/png");
+        anchor.download = "sketchpad.png";
+        anchor.click();
+    }
+    else{
+        console.log("failed to get 2d context")
+    }
+}  
 
 //actions to be linked
 
@@ -290,7 +318,7 @@ canvas.addEventListener('mouseup', (e) => {
         const textWidth = measurements[0];
         const textHeight = measurements[1];
     
-        context.fillText(mouseString, (e.offsetX - textWidth / 2) - 1, (e.offsetY + textHeight / 2) - 9)
+        context.fillText(mouseString, (e.offsetX - textWidth / 2) - 1, (e.offsetY + textHeight / 2) - 11)
     }
     undoStack.length = contextPointer + 1;
     const newCtx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
@@ -321,6 +349,8 @@ const thickButton = new commandButton("Marker", thickLine, markerContainer)
 const thinButton = new commandButton("Pen", thinLine, markerContainer)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const customButton = new commandButton("Custom Sticker", customSticker, markerContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const exportButton = new commandButton("Export", exportDrawing, exportContainer)
 
 const stickerList: string[] =  ["🦕", "🦖", "🌋", "🔥", "💥"]
 
