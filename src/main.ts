@@ -24,9 +24,20 @@ const markerContainer = document.createElement("div");
 buttonContainer.id = "button-container";
 app.append(markerContainer);
 
+const colorContainer = document.createElement("div");
+colorContainer.id = "button-container";
+app.append(colorContainer);
+
 const stickerContainer = document.createElement("div");
 buttonContainer.id = "button-container";
 app.append(stickerContainer);
+
+const colorSlider = document.createElement("input");
+colorSlider.type = "range";
+colorSlider.min = "0";
+colorSlider.max = "100";
+app.append(colorSlider)
+
 
 const context = canvas.getContext('2d');
 
@@ -59,7 +70,7 @@ class mousePointer {
     color: string;
     isNull: boolean;
     fontSize: number = defaultSize;
-    constructor(text: string, color: "white" | "black" | "red", lineSize: number) {
+    constructor(text: string, color: string, lineSize: number) {
         this.color = color;
         this.isNull = true;
         this.cursor = document.createElement("div");
@@ -86,7 +97,7 @@ class mousePointer {
         this.isNull = false;
         this.cursor.style.display = 'block'
     }
-    update(text: string, color: "white" | "black" | "red", lineSize: number){
+    update(text: string, color: string, lineSize: number){
         this.color = color;
         this.cursor.textContent = text;
         this.cursor.style.color = color;
@@ -127,14 +138,14 @@ let contextPointer = 0;
 let lineThickness = 2;
 const defaultSize = 8;
 let mouseString: string = "•";
-let mouseColor: "white" | "red" | "black" = "white"
+let mouseColor: string = "white";
 const preview: mousePointer = new mousePointer(mouseString, mouseColor, lineThickness);
 
 const blankCanvas: ctx = new ctx(context.getImageData(0, 0, canvas.width, canvas.height));
 undoStack.push(blankCanvas);
 
 //command functions
-function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, weight: number, color: "white" | "black" | "red" | "#1a1a1a") {
+function drawLine(context: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, weight: number, color: string) {
     context.beginPath();
     context.strokeStyle = color;
     context.lineWidth = weight;
@@ -185,6 +196,34 @@ function thinLine(): void {
     isSticker = false;
 }
 
+function red(): void {
+    mouseColor = "red";
+    if(context){
+        context.fillStyle = mouseColor;
+    }
+}
+
+function black(): void {
+    mouseColor = "black";
+    if(context){
+        context.fillStyle = mouseColor;
+    }
+}
+
+function white(): void {
+    mouseColor = "white";
+    if(context){
+        context.fillStyle = mouseColor;
+    }
+}
+
+function blue(): void {
+    mouseColor = "blue";
+    if(context){
+        context.fillStyle = mouseColor;
+    }
+}
+
 function makeSticker(s: string): void {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const stickerButton = new commandButton(s, () => {
@@ -192,7 +231,7 @@ function makeSticker(s: string): void {
         lineThickness = 4;
         if(context){
             context.font = `${lineThickness * defaultSize - 1}px Arial`;
-            context.fillStyle = "white";
+            context.fillStyle = mouseColor;
         }
         isSticker = true;
     }, stickerContainer)
@@ -260,6 +299,26 @@ function exportDrawing(): void {
     }
 }  
 
+function getColorForValue(value:number): string { 
+    // Ensure value is within 0-100
+    value = Math.min(100, Math.max(0, value));
+
+    // Define color start (red) and end (green)
+    const startColor = { r: 255, g: 0, b: 0 }; // Red
+    const endColor = { r: 0, g: 255, b: 0 };   // Green
+
+    // Calculate ratio
+    const ratio = value / 100;
+
+    // Interpolate color
+    const r = Math.ceil(startColor.r * (1 - ratio) + endColor.r * ratio);
+    const g = Math.ceil(startColor.g * (1 - ratio) + endColor.g * ratio);
+    const b = Math.ceil(startColor.b * (1 - ratio) + endColor.b * ratio);
+
+    // Return as CSS color string
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
 //actions to be linked
 
 //draw on mouse movement
@@ -272,7 +331,7 @@ canvas.addEventListener('drawing-changed', () => {
     if (pointArray.length < 2) return; // Ensure there are enough points to draw a line
     const secondLastPoint = pointArray[pointArray.length - 2];
     const lastPoint = pointArray[pointArray.length - 1];
-    drawLine(context, secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y, lineThickness, "white");
+    drawLine(context, secondLastPoint.x, secondLastPoint.y, lastPoint.x, lastPoint.y, lineThickness, mouseColor);
 })
 
 canvas.addEventListener('mousedown', () => {
@@ -336,6 +395,10 @@ canvas.addEventListener("tool-moved", (e: ToolMovedEvent) => {
     }
 })
 
+colorSlider.addEventListener("input", () => {
+    mouseColor = getColorForValue(parseInt(colorSlider.value));
+})
+
 //clear button
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const clearButton = new commandButton("Clear", clearCanvas, buttonContainer)
@@ -351,6 +414,14 @@ const thinButton = new commandButton("Pen", thinLine, markerContainer)
 const customButton = new commandButton("Custom Sticker", customSticker, markerContainer)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const exportButton = new commandButton("Export", exportDrawing, exportContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const redButton = new commandButton("🟥", red, colorContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const whiteButton = new commandButton("⬜", white, colorContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const blackButton = new commandButton("⬛", black, colorContainer)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const blueButton = new commandButton("🟦", blue, colorContainer)
 
 const stickerList: string[] =  ["🦕", "🦖", "🌋", "🔥", "💥"]
 
