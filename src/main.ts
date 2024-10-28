@@ -12,8 +12,8 @@ exportContainer.id = "button-container";
 app.append(exportContainer);
 
 const canvas = document.createElement("canvas");
-canvas.width = 256;
-canvas.height = 256;
+canvas.width = 512;
+canvas.height = 512;
 app.append(canvas)
 
 const buttonContainer = document.createElement("div");
@@ -79,8 +79,8 @@ class mousePointer {
         if(this.isNull) {
             this.cursor.style.display = 'none'
         }
-        this.cursor.style.left = `${x + canvasBounds.left}px`;
-        this.cursor.style.top = `${y + canvasBounds.top}px`;
+        this.cursor.style.left = `${x + canvasBounds.left + globalThis.scrollX}px`;
+        this.cursor.style.top = `${y + canvasBounds.top + globalThis.scrollY}px`;
     }
     display() {
         this.isNull = false;
@@ -242,7 +242,7 @@ function exportDrawing(): void {
     const newCtx = newCanvas.getContext('2d');
     if(context && newCtx) {
         // Set up the scale first
-        const scale = 4
+        const scale = newCanvas.width / canvas.width
         newCtx.scale(scale, scale);
  
         // Copy the original canvas to the new one, scaling it by the specified factor
